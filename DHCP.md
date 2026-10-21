@@ -26,12 +26,11 @@
 - Acknowledge (A) -> The server send the response and record that the host will use that address.
 
 ### DHCP Message
-- op (1) = Message type 1 = BOOTREQUEST and 2 = BOOTREPLY
-- htype (1) = hardware address type 
-- hlen (1) = hardware address length
-- hops (1) N/A for now
-- xid (4) = random ID selected by clients
-- secs (2) = second since acquisition, filled by clients.
-- ciaddr (2) = only filled in if client is in BOUND, RENEW or REBINDING state and can respond to ARP requests.
-- yiaddr (2) = 'your' (client) IP address.
-- siaddr (2) = IP address of next server to use in bootstrap; returned in DHCPOFFER, DHCPACK by server.
+- The DHCP payload starts with a 236-byte BOOTP header. Multi-byte integers use network byte order:
+  - `op` (1 byte) = 1 for BOOTREQUEST or 2 for BOOTREPLY.
+  - `htype` (1 byte) = hardware address type; `hlen` (1 byte) = hardware address length; `hops` (1 byte) = relay-agent hop count.
+  - `xid` (4 bytes) = transaction ID; `secs` (2 bytes) = seconds elapsed; `flags` (2 bytes) = flags including the broadcast bit.
+  - `ciaddr`, `yiaddr`, `siaddr`, and `giaddr` (4 bytes each) = client, offered client, next-server, and relay-agent IPv4 addresses.
+  - `chaddr` (16 bytes) = client hardware address; `sname` (64 bytes) = optional server name; `file` (128 bytes) = boot file name.
+- At byte offset 236, DHCP adds the magic cookie `63 82 53 63`, followed by variable-length options. Each option has a code and length byte followed by its value; code 0 is padding and code 255 ends the option field.
+- The `DHCPParser` in `domain/DHCPParser.ts` parses a UDP DHCP payload supplied as a `Uint8Array`. It validates the fixed header, cookie, and option boundaries, and returns header fields and option values as bytes. Option 52 causes the `file` and/or `sname` fields to be parsed as additional option fields.
