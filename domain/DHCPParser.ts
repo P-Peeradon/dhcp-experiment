@@ -1,8 +1,10 @@
 import DHCPMessage from "../process/dora";
 
 class DHCPParser {
-    static getXID(packet: DHCPMessage) {
+    static getXID(packet: Buffer): number {
+        const xid = packet.readUInt32BE(4);
 
+        return xid;
     } 
 }
 
