@@ -1,3 +1,4 @@
+import { throws } from 'assert';
 import crypto from 'crypto';
 
 type DHCPAction = "DISCOVER" | "OFFER" | "REQUEST" | "ACK";
@@ -30,6 +31,42 @@ class DHCPMessage {
         this.hops = hops;
         this.xid = xid;
         this.sname = sname;
+    }
+
+    setAddress(address: string, owner: string, mac: boolean = false) {
+        if (owner.length !== 1) throw Error("Invalid value, type of address should be only one letter.");
+
+        if (mac && owner !== 'c') 
+            throw Error("DHCP only support client's MAC address.");
+        else if (mac && owner === 'c') {
+            this.chaddr = address; return;
+        } else {
+            switch (owner.toLowerCase()) {
+                case "c":
+                    this.ciaddr = address
+                    break;
+
+                case "y":
+                    this.yiaddr = address
+                    break;
+
+                case "s":
+                    this.siaddr = address
+                    break;
+
+                case "g":
+                    this.giaddr = address
+                    break;
+
+                default:
+                    throw Error("Invalid address entry.");
+            }
+        }
+            
+    }
+
+    addOption(option: number) {
+        this.options.push(option);
     }
 
     encapsulate(): Buffer<ArrayBuffer> {
