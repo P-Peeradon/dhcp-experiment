@@ -3,13 +3,13 @@ import { v4 } from "uuid";
 type DHCPAction = "DISCOVER" | "OFFER" | "REQUEST" | "ACK";
 type DHCPState = "DHCPDISCOVER" | "DHCPOFFER" | "DHCPREQUEST" | "DHCPACK" | "DHCPNAK" | "DHCPDECLINE"; 
 
-enum op {
+enum OP {
     BOOTREQUEST = 1,
     BOOTREPLY
 }
 
 class DHCPMessage {
-    private op: number = 1;
+    private op: OP;
     private htype: number = 1;
     private hlen: number = 6;
     private hops: number;
@@ -25,7 +25,8 @@ class DHCPMessage {
     private file: any;
     private options: number[] = []; // Can be variable
 
-    constructor(hops: number, xid: string, sname: string) {
+    constructor(op: OP, hops: number, xid: string, sname: string) {
+        this.op = op;
         this.hops = hops;
         this.xid = xid;
         this.sname = sname;
