@@ -59,8 +59,11 @@ class DHCPMessage {
 
         // From server name to 64 bytes.
         const sname: Buffer = Buffer.from(encoder.encode(this.sname));
+        const options = Buffer.from(this.options);
 
         sname.copy(packet, 44);
+        packet.writeUInt32BE(0x63825363, 236);
+        options.copy(packet, 240);
 
         return packet;
     }
