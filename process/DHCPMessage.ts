@@ -14,7 +14,7 @@ class DHCPMessage {
     private htype: number = 1;
     private hlen: number = 6;
     private hops: number;
-    private xid: number = crypto.randomInt(2 ** 32);
+    private _xid: number = crypto.randomInt(2 ** 32);
     private secs: number = 0;
     private flags: string = "";
     private ciaddr: string = "0.0.0.0";
@@ -29,8 +29,12 @@ class DHCPMessage {
     constructor(op: OP, hops: number, xid: number, sname: string) {
         this.op = op;
         this.hops = hops;
-        this.xid = xid;
+        this._xid = xid;
         this.sname = sname;
+    }
+
+    get xid(): number {
+        return this._xid;
     }
 
     setAddress(address: string, owner: string, mac: boolean = false) {
