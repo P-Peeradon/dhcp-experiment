@@ -7,10 +7,6 @@ class DHCPClient {
     private socket: Socket = createSocket("udp4");
     private session: DHCPSession | null = null;
 
-    constructor () {
-        
-    }
-
     start(port: number = 6800):  void {
         this.socket.on("message", (message, remote) => {
             console.log(`Receive ${message.length} bytes from ${remote.address}:${remote.port}`); 
@@ -37,20 +33,29 @@ class DHCPClient {
     discover(): void {
         const xid = crypto.randomInt(2 ** 32); // For use throughout 
         this.session = new DHCPSession("CLIENT", xid);
-        const message = new DHCPMessage(1, 0, xid, "");
-
-        message.setAddress("0.0.0.0", "c");
-        message.setAddress("0.0.0.0", "y");
-        message.setAddress("0.0.0.0", "s");
-        message.setAddress("0.0.0.0", "g");
+        const message = new DHCPMessage(1, 0, xid);
         message.addOption(53);
 
         const packet= message.encapsulate();
 
+        
         this.send(packet, 6700);
     }
 
-    request(ipAddress: string): void {}
+    request(offerMessage: DHCPMessage): void {
+        const xid = offerMessage.xid;
+        if (!this.session) throw new Error("Error: DHCP session is not initiated");
+
+        const offeredAddress = offerMessage.getAddress("y");
+
+        const requestMessage = new DHCPMessage(1, 0, xid);
+        requestMessage.setAddress(offeredAddress, "c");
+
+        const packet = requestMessage.encapsulate();
+        this.session.setState('DHCPREQUEST')
+
+        this.send(packet, 6700);
+    }
 }
 
 export default DHCPClient;
