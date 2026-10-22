@@ -21,6 +21,10 @@ class DHCPSession {
         return this.state;
     }
 
+    setState(next: DHCPState): void {
+        this.state = next;
+    } 
+
     startDiscover(): DHCPAction {
         this.requireRole("CLIENT");
         this.requireState("DHCPINIT");
@@ -66,8 +70,8 @@ class DHCPSession {
     private requireState(expected: DHCPState): void {
         if (this.state !== expected) {
             throw new Error(`Expected state ${expected}, got ${this.state}.`);
+        }
     }
-}
 }
 
 
