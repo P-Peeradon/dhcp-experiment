@@ -26,7 +26,7 @@ class DHCPMessage {
     private file: any;
     private options: number[] = []; // Can be variable
 
-    constructor(op: OP, hops: number, xid: number, sname: string) {
+    constructor(op: OP, hops: number, xid: number, sname: string = "") {
         this.op = op;
         this.hops = hops;
         this._xid = xid;
@@ -37,7 +37,7 @@ class DHCPMessage {
         return this._xid;
     }
 
-    setAddress(address: string, owner: string, mac: boolean = false) {
+    setAddress(address: string, owner: string, mac: boolean = false): void {
         if (owner.length !== 1) throw Error("Invalid value, type of address should be only one letter.");
 
         if (mac && owner !== 'c') 
@@ -66,7 +66,35 @@ class DHCPMessage {
                     throw Error("Invalid address entry.");
             }
         }
-            
+          
+    }
+
+    getAddress(owner: string, mac: boolean = false): string {
+        if (owner.length !== 1) throw Error("Invalid value, type of address should be only one letter.");
+
+        if (mac && owner !== 'c') 
+            throw Error("DHCP only support client's MAC address.");
+        else if (mac && owner === 'c') {
+            return this.chaddr;
+        } else {
+            switch (owner.toLowerCase()) {
+                case "c":
+                    return this.ciaddr;
+
+                case "y":
+                    return this.yiaddr;
+
+                case "s":
+                    return this.siaddr;
+
+                case "g":
+                    return this.giaddr;
+
+                default:
+                    throw Error("Invalid address entry.");
+            }
+        }
+          
     }
 
     addOption(option: number) {
