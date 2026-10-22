@@ -1,4 +1,4 @@
-import DHCPMessage from "../process/dora";
+import DHCPMessage from "../process/DHCPMessage";
 
 class DHCPParser {
     static getXID(packet: Buffer): number {
