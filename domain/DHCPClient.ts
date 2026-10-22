@@ -1,7 +1,15 @@
 import { createSocket, type Socket } from "node:dgram";
+import DHCPSession from "./DHCPSession";
+import crypto from 'crypto';
+import DHCPMessage from "../process/DHCPMessage";
 
 class DHCPClient {
     private socket: Socket = createSocket("udp4");
+    private session: DHCPSession | null = null;
+
+    constructor () {
+        
+    }
 
     start(port: number = 6800):  void {
         this.socket.on("message", (message, remote) => {
@@ -24,4 +32,25 @@ class DHCPClient {
     close(): void {
         this.socket.close();
     }
+
+    // For sending discover message.
+    discover(): void {
+        const xid = crypto.randomInt(2 ** 32); // For use throughout 
+        this.session = new DHCPSession("CLIENT", xid);
+        const message = new DHCPMessage(1, 0, xid, "");
+
+        message.setAddress("0.0.0.0", "c");
+        message.setAddress("0.0.0.0", "y");
+        message.setAddress("0.0.0.0", "s");
+        message.setAddress("0.0.0.0", "g");
+        message.addOption(53);
+
+        const packet= message.encapsulate();
+
+        this.send(packet, 6700);
+    }
+
+    request(ipAddress: string): void {}
 }
+
+export default DHCPClient;

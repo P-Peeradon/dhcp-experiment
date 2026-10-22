@@ -12,6 +12,10 @@ class DHCPServer {
             console.error("DHCP server socket error:", error);
         });
 
+        this.socket.on("listening", () => {
+            console.log(`This socket is listening on port ${port}`)
+        })
+
         this.socket.bind(port, "127.0.0.1");
     }
 
@@ -19,3 +23,5 @@ class DHCPServer {
         this.socket.close();
     }
 }
+
+export default DHCPServer;
