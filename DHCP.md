@@ -25,6 +25,22 @@
 - Request (R) -> The client request to use that address.
 - Acknowledge (A) -> The server send the response and record that the host will use that address.
 
+### Session state updates in this implementation
+
+The client and server each maintain a `DHCPSession` for the transaction ID (`xid`). Call the transition method when the corresponding packet is sent or received:
+
+| DORA event | Side | Method call | State after call |
+| --- | --- | --- | --- |
+| Client sends DISCOVER | Client | `startDiscover()` | `DHCPSELECTING` |
+| Server receives DISCOVER | Server | `receiveDiscover()` | `DHCPOFFER` |
+| Client receives OFFER | Client | `receiveOffer()` | `DHCPOFFER` |
+| Client sends REQUEST | Client | `startRequest()` | `DHCPREQUEST` |
+| Server receives REQUEST | Server | `receiveRequest()` | `DHCPREQUEST` |
+| Server sends ACK | Server | `sendAck()` | `DHCPBOUND` |
+| Client receives ACK | Client | `receiveAck()` | `DHCPBOUND` |
+
+These calls are wired into the message handlers in `domain/DHCPClient.ts` and `domain/DHCPServer.ts`. `getState()` can be used to inspect the current state; transitions validate the session role and expected prior state.
+
 ### DHCP Message
 - The DHCP payload starts with a 236-byte BOOTP header. Multi-byte integers use network byte order:
   - `op` (1 byte) = 1 for BOOTREQUEST or 2 for BOOTREPLY.

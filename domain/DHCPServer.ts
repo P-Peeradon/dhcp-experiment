@@ -1,24 +1,39 @@
 import { createSocket, type Socket } from "node:dgram";
 import DHCPParser from "./DHCPParser";
-import fs from "node:fs";
-import path from "node:path";
 import DHCPMessage from "../process/DHCPMessage";
 import DHCPSession from "./DHCPSession";
 import crypto from "crypto";
 
+const DHCPMessageType = {
+    DISCOVER: 1,
+    OFFER: 2,
+    REQUEST: 3,
+    ACK: 5
+} as const;
+
 class DHCPServer {
     private socket: Socket = createSocket("udp4");
     private session: DHCPSession | null = null;
+    private offeredAddress: string | null = null;
 
     start(port: number = 6700): void {
-        this.socket.on("message", async (message, remote) => {
+        this.socket.on("message", (message, remote) => {
             try {
                 const dhcpMessage = DHCPParser.ParseDHCP(message);
                 console.log(`Received ${message.length} bytes from ${remote.address}:${remote.port}`);
-                fs.writeFileSync(path.join(__dirname, "dhcp", `${dhcpMessage.xid}_state.json`), JSON.stringify(dhcpMessage));
-                console.dir(dhcpMessage);
+
+                switch (dhcpMessage.getMessageType()) {
+                    case DHCPMessageType.DISCOVER:
+                        this.offer(dhcpMessage);
+                        break;
+                    case DHCPMessageType.REQUEST:
+                        this.acknowledge(dhcpMessage);
+                        break;
+                    default:
+                        throw new Error(`Unexpected DHCP message type: ${dhcpMessage.getMessageType()}.`);
+                }
             } catch (error) {
-                console.error(`Failed to parse DHCP packet from ${remote.address}:${remote.port}:`, error);
+                console.error(`Failed to handle DHCP packet from ${remote.address}:${remote.port}:`, error);
             }
         });
 
@@ -46,22 +61,41 @@ class DHCPServer {
     offer(discoverMessage: DHCPMessage): void {
         const xid = discoverMessage.xid;
         this.session = new DHCPSession("SERVER", xid);
-        this.session.receiveRequest();
+        const action = this.session.receiveDiscover();
 
-        // Create offer request.
         const offerMessage = new DHCPMessage(2, 0, xid);
         const rnd = crypto.randomInt(100, 220);
-        const offeredIP: string = `192.100.80.${rnd}`;
+        this.offeredAddress = `192.100.80.${rnd}`;
 
-        offerMessage.setAddress("y", offeredIP);
-        offerMessage.addOption(54);
-
-        const packet = offerMessage.encapsulate();
-
-        this.send(packet, 6800);
+        offerMessage.setAddress("y", this.offeredAddress);
+        offerMessage.addOption(53, Buffer.from([DHCPMessageType[action]]));
+        offerMessage.addOption(54, Buffer.from([127, 0, 0, 1]));
+        this.send(offerMessage.encapsulate(), 6800);
+        console.log(`Sent ${action}; DHCP session is ${this.session.getState()}.`);
     }
 
-    
+    private acknowledge(requestMessage: DHCPMessage): void {
+        if (!this.session || requestMessage.xid !== this.session.transactionId) {
+            throw new Error("Received DHCP REQUEST for an unknown transaction.");
+        }
+        const requestedAddress = requestMessage.getOption(50);
+        if (
+            !this.offeredAddress ||
+            !requestedAddress ||
+            requestedAddress.join(".") !== this.offeredAddress
+        ) {
+            throw new Error("DHCP REQUEST does not match the address offered to this client.");
+        }
+
+        this.session.receiveRequest();
+        const action = this.session.sendAck();
+        const ackMessage = new DHCPMessage(2, 0, this.session.transactionId);
+        ackMessage.setAddress("y", this.offeredAddress);
+        ackMessage.addOption(53, Buffer.from([DHCPMessageType[action]]));
+        ackMessage.addOption(54, Buffer.from([127, 0, 0, 1]));
+        this.send(ackMessage.encapsulate(), 6800);
+        console.log(`Sent ${action}; DHCP session is ${this.session.getState()}.`);
+    }
 }
 
 export default DHCPServer;

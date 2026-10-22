@@ -51,7 +51,7 @@ class DHCPParser {
                 throw new Error(`Option ${code} exceeds the packet`);
             }
 
-            dhcpMessage.addOption(code);
+            dhcpMessage.addOption(code, packet.subarray(offset, offset + length));
             offset += length;
         }
 

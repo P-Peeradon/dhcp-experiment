@@ -1,8 +1,4 @@
-import { throws } from 'assert';
 import crypto from 'crypto';
-
-type DHCPAction = "DISCOVER" | "OFFER" | "REQUEST" | "ACK";
-type DHCPState = "DHCPDISCOVER" | "DHCPOFFER" | "DHCPREQUEST" | "DHCPACK" | "DHCPNAK" | "DHCPDECLINE"; 
 
 enum OP {
     BOOTREQUEST = 1,
@@ -23,8 +19,7 @@ class DHCPMessage {
     private giaddr: string = "0.0.0.0";
     private chaddr: string = "00:00:00:00:00:00"; // MAC Address before getting IP address
     private sname: string;
-    private file: any;
-    private options: number[] = []; // Can be variable
+    private options: Array<{ code: number; value: Buffer }> = [];
 
     constructor(op: OP, hops: number, xid: number, sname: string = "") {
         this.op = op;
@@ -35,6 +30,10 @@ class DHCPMessage {
 
     get xid(): number {
         return this._xid;
+    }
+
+    getMessageType(): number | undefined {
+        return this.getOption(53)?.[0];
     }
 
     setAddress(address: string, owner: string, mac: boolean = false): void {
@@ -97,12 +96,20 @@ class DHCPMessage {
           
     }
 
-    addOption(option: number) {
-        this.options.push(option);
+    addOption(code: number, value: Buffer = Buffer.alloc(0)): void {
+        this.options.push({ code, value });
+    }
+
+    getOption(code: number): Buffer | undefined {
+        return this.options.find((option) => option.code === code)?.value;
     }
 
     encapsulate(): Buffer<ArrayBuffer> {
-        const packet: Buffer<ArrayBuffer> = Buffer.alloc(240 + this.options.length);
+        const optionLength = this.options.reduce(
+            (length, option) => length + 2 + option.value.length,
+            1
+        );
+        const packet: Buffer<ArrayBuffer> = Buffer.alloc(240 + optionLength);
         const encoder = new TextEncoder();
         
         packet.writeUint8(this.op, 0);
@@ -128,11 +135,18 @@ class DHCPMessage {
 
         // From server name to 64 bytes.
         const sname: Buffer = Buffer.from(encoder.encode(this.sname));
-        const options = Buffer.from(this.options);
 
         sname.copy(packet, 44);
         packet.writeUInt32BE(0x63825363, 236);
-        options.copy(packet, 240);
+
+        let offset = 240;
+        for (const option of this.options) {
+            packet.writeUInt8(option.code, offset++);
+            packet.writeUInt8(option.value.length, offset++);
+            option.value.copy(packet, offset);
+            offset += option.value.length;
+        }
+        packet.writeUInt8(255, offset);
 
         return packet;
     }

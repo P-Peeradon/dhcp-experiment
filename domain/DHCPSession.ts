@@ -1,12 +1,11 @@
 type DHCPRole = "CLIENT" | "SERVER";
 type DHCPAction = "DISCOVER" | "OFFER" | "REQUEST" | "ACK";
-type DHCPState = 
-    "DHCPSELECTING" | 
-    "DHCPOFFER" | 
-    "DHCPREQUEST" | 
-    "DHCPACK" | 
-    "DHCPINIT" | 
-    "DHCPBOUND"; 
+type DHCPState =
+    "DHCPINIT" |
+    "DHCPSELECTING" |
+    "DHCPOFFER" |
+    "DHCPREQUEST" |
+    "DHCPBOUND";
 
 class DHCPSession {
     private state: DHCPState;
@@ -14,16 +13,12 @@ class DHCPSession {
 
     constructor(role: DHCPRole, readonly transactionId: number) {
         this.role = role;
-        this.state = role === "CLIENT" ? "DHCPINIT" : "DHCPINIT";
+        this.state = "DHCPINIT";
     }
 
     getState(): DHCPState {
         return this.state;
     }
-
-    setState(next: DHCPState): void {
-        this.state = next;
-    } 
 
     startDiscover(): DHCPAction {
         this.requireRole("CLIENT");
@@ -33,18 +28,27 @@ class DHCPSession {
         return "DISCOVER";
     }
 
-    receiveDiscover(): void {
+    receiveDiscover(): DHCPAction {
         this.requireRole("SERVER");
         this.requireState("DHCPINIT");
 
-        this.state = "DHCPREQUEST";
+        this.state = "DHCPOFFER";
+        return "OFFER";
     }
 
     receiveOffer(): void {
         this.requireRole("CLIENT");
-        this.requireState("DHCPREQUEST");
+        this.requireState("DHCPSELECTING");
 
         this.state = "DHCPOFFER";
+    }
+
+    startRequest(): DHCPAction {
+        this.requireRole("CLIENT");
+        this.requireState("DHCPOFFER");
+
+        this.state = "DHCPREQUEST";
+        return "REQUEST";
     }
 
     receiveRequest(): void {
@@ -54,11 +58,19 @@ class DHCPSession {
         this.state = "DHCPREQUEST";
     }
 
+    sendAck(): DHCPAction {
+        this.requireRole("SERVER");
+        this.requireState("DHCPREQUEST");
+
+        this.state = "DHCPBOUND";
+        return "ACK";
+    }
+
     receiveAck(): void {
         this.requireRole("CLIENT");
         this.requireState("DHCPREQUEST");
 
-        this.state = "DHCPACK";
+        this.state = "DHCPBOUND";
     }
 
     private requireRole(expected: DHCPRole): void {
