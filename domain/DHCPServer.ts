@@ -67,7 +67,7 @@ class DHCPServer {
         const rnd = crypto.randomInt(100, 220);
         this.offeredAddress = `192.100.80.${rnd}`;
 
-        offerMessage.setAddress("y", this.offeredAddress);
+        offerMessage.setAddress(this.offeredAddress, "y");
         offerMessage.addOption(53, Buffer.from([DHCPMessageType[action]]));
         offerMessage.addOption(54, Buffer.from([127, 0, 0, 1]));
         this.send(offerMessage.encapsulate(), 6800);
@@ -90,7 +90,7 @@ class DHCPServer {
         this.session.receiveRequest();
         const action = this.session.sendAck();
         const ackMessage = new DHCPMessage(2, 0, this.session.transactionId);
-        ackMessage.setAddress("y", this.offeredAddress);
+        ackMessage.setAddress(this.offeredAddress, "y");
         ackMessage.addOption(53, Buffer.from([DHCPMessageType[action]]));
         ackMessage.addOption(54, Buffer.from([127, 0, 0, 1]));
         this.send(ackMessage.encapsulate(), 6800);

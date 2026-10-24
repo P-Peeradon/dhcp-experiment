@@ -30,6 +30,7 @@ class DHCPClient {
                             throw new Error("Received DHCP ACK for an unknown transaction.");
                         }
                         this.session.receiveAck();
+                        console.log(`Received IP address: ${dhcpMessage.getAddress("y")}.`);
                         console.log(`DHCP session is ${this.session.getState()}.`);
                         break;
                     default:
