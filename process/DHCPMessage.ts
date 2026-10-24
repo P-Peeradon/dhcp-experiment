@@ -12,13 +12,14 @@ class DHCPMessage {
     private hops: number;
     private _xid: number = crypto.randomInt(2 ** 32);
     private secs: number = 0;
-    private flags: string = "";
+    private flags: number = 0;
     private ciaddr: string = "0.0.0.0";
     private yiaddr: string =  "0.0.0.0";
     private siaddr: string = "0.0.0.0";
     private giaddr: string = "0.0.0.0";
     private chaddr: string = "00:00:00:00:00:00"; // MAC Address before getting IP address
     private sname: string;
+    private file: string = "";
     private options: Array<{ code: number; value: Buffer }> = [];
 
     constructor(op: OP, hops: number, xid: number, sname: string = "") {
@@ -30,6 +31,45 @@ class DHCPMessage {
 
     get xid(): number {
         return this._xid;
+    }
+
+    setParsedHeader(fields: {
+        htype: number;
+        hlen: number;
+        secs: number;
+        flags: number;
+        file: string;
+    }): void {
+        this.htype = fields.htype;
+        this.hlen = fields.hlen;
+        this.secs = fields.secs;
+        this.flags = fields.flags;
+        this.file = fields.file;
+    }
+
+    toJSON() {
+        return {
+            op: this.op,
+            htype: this.htype,
+            hlen: this.hlen,
+            hops: this.hops,
+            xid: this._xid,
+            secs: this.secs,
+            flags: this.flags,
+            ciaddr: this.ciaddr,
+            yiaddr: this.yiaddr,
+            siaddr: this.siaddr,
+            giaddr: this.giaddr,
+            chaddr: this.chaddr,
+            sname: this.sname,
+            file: this.file,
+            magicCookie: "63825363",
+            options: this.options.map(({ code, value }) => ({
+                code,
+                length: value.length,
+                value: Array.from(value)
+            }))
+        };
     }
 
     getMessageType(): number | undefined {

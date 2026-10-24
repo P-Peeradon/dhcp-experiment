@@ -1,4 +1,5 @@
 import { createSocket, type Socket } from "node:dgram";
+import { writeFile } from "node:fs/promises";
 import DHCPParser from "./DHCPParser";
 import DHCPMessage from "../process/DHCPMessage";
 import DHCPSession from "./DHCPSession";
@@ -17,13 +18,18 @@ class DHCPServer {
     private offeredAddress: string | null = null;
 
     start(port: number = 6700): void {
-        this.socket.on("message", (message, remote) => {
+        this.socket.on("message", async (message, remote) => {
             try {
                 const dhcpMessage = DHCPParser.ParseDHCP(message);
                 console.log(`Received ${message.length} bytes from ${remote.address}:${remote.port}`);
 
                 switch (dhcpMessage.getMessageType()) {
                     case DHCPMessageType.DISCOVER:
+                        await writeFile(
+                            `${dhcpMessage.xid}_dhcp.json`,
+                            JSON.stringify(dhcpMessage, null, 2),
+                            "utf8"
+                        );
                         this.offer(dhcpMessage);
                         break;
                     case DHCPMessageType.REQUEST:

@@ -29,8 +29,12 @@ class DHCPParser {
         const sname = packet.subarray(44, 108)   // 64-byte field
                             .toString("utf8")
                             .replace(/\0.*$/, "");  // remove null padding
+        const file = packet.subarray(108, 236)
+                           .toString("utf8")
+                           .replace(/\0.*$/, "");
         
         const dhcpMessage = new DHCPMessage(op, hops, xid, sname);
+        dhcpMessage.setParsedHeader({ htype, hlen, secs, flags, file });
         
         dhcpMessage.setAddress(ciaddr, 'c');
         dhcpMessage.setAddress(yiaddr, 'y');
