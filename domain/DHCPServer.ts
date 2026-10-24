@@ -4,6 +4,7 @@ import DHCPParser from "./DHCPParser";
 import DHCPMessage from "../process/DHCPMessage";
 import DHCPSession from "./DHCPSession";
 import crypto from "crypto";
+import path from "node:path";
 
 const DHCPMessageType = {
     DISCOVER: 1,
@@ -26,7 +27,7 @@ class DHCPServer {
                 switch (dhcpMessage.getMessageType()) {
                     case DHCPMessageType.DISCOVER:
                         await writeFile(
-                            `${dhcpMessage.xid}_dhcp.json`,
+                            path.join(__dirname, "dhcp", `${dhcpMessage.xid}_dhcp.json`),
                             JSON.stringify(dhcpMessage, null, 2),
                             "utf8"
                         );
